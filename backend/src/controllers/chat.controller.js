@@ -4,7 +4,10 @@ import { success, error } from '../utils/response.js'
 // ─── ROOMS ────────────────────────────────────────────────────────────────────
 export const listRooms = async (req,res) => {
   try { return success(res, await Chat.listRooms(req.tenantId, req.user.uid)) }
-  catch(err){ return error(res, err.message, 500) }
+  catch(err){
+    console.error('[chat/rooms]', err.message)
+    return error(res, err.message, 500)
+  }
 }
 export const createRoom = async (req,res) => {
   try {

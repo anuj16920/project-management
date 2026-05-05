@@ -17,7 +17,11 @@ export const listRooms = async (tenantId, uid) => {
     .from('chat_room_members')
     .select('room_id, last_read')
     .eq('user_uid', uid)
-  if (mErr) throw mErr
+  if (mErr) {
+    // Table may not exist yet — return empty gracefully
+    console.error('[chat] chat_room_members query failed:', mErr.message)
+    return []
+  }
   if (!memberRows?.length) return []
 
   const roomIds = memberRows.map(m => m.room_id)
@@ -246,61 +250,68 @@ export const markRoomRead = async (roomId, uid) => {
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 export const listNotifications = async (tenantId, uid, { limit = 30, unread_only } = {}) => {
-  let q = supabaseAdmin
-    .from('notifications')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('user_uid', uid)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  try {
+    let q = supabaseAdmin
+      .from('notifications')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('user_uid', uid)
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-  if (unread_only) q = q.eq('is_read', false)
+    if (unread_only) q = q.eq('is_read', false)
 
-  const { data, error } = await q
-  if (error) throw error
-  return data || []
+    const { data, error } = await q
+    if (error) return []
+    return data || []
+  } catch { return [] }
 }
 
 export const markNotifRead = async (tenantId, uid, id) => {
-  const { data, error } = await supabaseAdmin
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('tenant_id', tenantId)
-    .eq('user_uid', uid)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  try {
+    const { data } = await supabaseAdmin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('tenant_id', tenantId)
+      .eq('user_uid', uid)
+      .eq('id', id)
+      .select()
+      .single()
+    return data || {}
+  } catch { return {} }
 }
 
 export const markAllNotifsRead = async (tenantId, uid) => {
-  const { error } = await supabaseAdmin
-    .from('notifications')
-    .update({ is_read: true })
-    .eq('tenant_id', tenantId)
-    .eq('user_uid', uid)
-    .eq('is_read', false)
-  if (error) throw error
+  try {
+    await supabaseAdmin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('tenant_id', tenantId)
+      .eq('user_uid', uid)
+      .eq('is_read', false)
+  } catch {}
 }
 
 export const createNotification = async (tenantId, payload) => {
-  const { user_uid, type, title, body, link, meta } = payload
-  const { data, error } = await supabaseAdmin
-    .from('notifications')
-    .insert({ tenant_id: tenantId, user_uid, type, title, body, link, meta: meta || {} })
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  try {
+    const { user_uid, type, title, body, link, meta } = payload
+    const { data } = await supabaseAdmin
+      .from('notifications')
+      .insert({ tenant_id: tenantId, user_uid, type, title, body, link, meta: meta || {} })
+      .select()
+      .single()
+    return data || {}
+  } catch { return {} }
 }
 
 export const getUnreadCount = async (tenantId, uid) => {
-  const { count } = await supabaseAdmin
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('user_uid', uid)
-    .eq('is_read', false)
-  return count || 0
+  try {
+    const { count } = await supabaseAdmin
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('user_uid', uid)
+      .eq('is_read', false)
+    return count || 0
+  } catch { return 0 }
 }

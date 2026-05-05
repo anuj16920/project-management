@@ -2,6 +2,7 @@ import * as AuthService from '../services/auth.service.js'
 import * as HRService from '../services/hr.service.js'
 import * as CRMService from '../services/crm.service.js'
 import { success, error } from '../utils/response.js'
+import supabaseAdmin from '../config/supabase.admin.js'
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 export const login = async (req, res) => {
@@ -148,5 +149,29 @@ export const resetPassword = async (req, res) => {
     return success(res, result)
   } catch (err) {
     return error(res, err.message, err.status || 500)
+  }
+}
+
+// ─── Update own profile ───────────────────────────────────────────────────────
+export const updateMe = async (req, res) => {
+  try {
+    const { full_name, phone, avatar_url, job_title, bio } = req.body
+    const updates = {}
+    if (full_name   !== undefined) updates.full_name  = full_name
+    if (phone       !== undefined) updates.phone      = phone
+    if (avatar_url  !== undefined) updates.avatar_url = avatar_url
+    if (job_title   !== undefined) updates.job_title  = job_title
+    if (bio         !== undefined) updates.bio        = bio
+
+    const { data, error: err } = await supabaseAdmin
+      .from('profiles')
+      .update(updates)
+      .eq('firebase_uid', req.user.uid)
+      .select()
+      .single()
+    if (err) throw err
+    return success(res, data, 'Profile updated')
+  } catch (err) {
+    return error(res, err.message, 500)
   }
 }

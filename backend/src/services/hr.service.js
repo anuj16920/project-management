@@ -33,7 +33,7 @@ export const deleteDepartment = async (tenantId, id) => {
 export const listEmployees = async (tenantId, filters = {}) => {
   let q = supabaseAdmin
     .from('employees')
-    .select(`*, profiles(full_name, email), departments(name)`)
+    .select(`*, departments(name)`)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -43,40 +43,58 @@ export const listEmployees = async (tenantId, filters = {}) => {
 
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  // profiles uses firebase_uid (text) — fetch separately, never via FK join
+  const uids = [...new Set((data || []).map(e => e.profile_uid).filter(Boolean))]
+  if (uids.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('firebase_uid, full_name, email')
+      .in('firebase_uid', uids)
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.firebase_uid, p]))
+    return (data || []).map(e => ({ ...e, profiles: profileMap[e.profile_uid] || null }))
+  }
+  return data || []
 }
 
 export const getEmployee = async (tenantId, id) => {
   const { data, error } = await supabaseAdmin
     .from('employees')
-    .select(`
-      *,
-      profiles(full_name, email, phone),
-      departments(name),
-      leave_requests(*, leave_types(name, color)),
-      payroll(*)
-    `)
+    .select(`*, departments(name), leave_requests(*, leave_types(name, color)), payroll(*)`)
     .eq('tenant_id', tenantId)
     .eq('id', id)
     .single()
   if (error) throw error
+
+  // fetch profile separately — firebase_uid (text) FK not recognized by Supabase
+  if (data?.profile_uid) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('firebase_uid, full_name, email, phone')
+      .eq('firebase_uid', data.profile_uid)
+      .single()
+    return { ...data, profiles: profile || null }
+  }
   return data
 }
 
 export const getMyEmployee = async (tenantId, uid) => {
   const { data, error } = await supabaseAdmin
     .from('employees')
-    .select(`
-      *,
-      profiles(full_name, email, phone),
-      departments(name),
-      leave_requests(*, leave_types(name, color)),
-      payroll(*)
-    `)
+    .select(`*, departments(name), leave_requests(*, leave_types(name, color)), payroll(*)`)
     .eq('tenant_id', tenantId)
     .eq('profile_uid', uid)
     .single()
   if (error) throw error
+
+  if (data?.profile_uid) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('firebase_uid, full_name, email, phone')
+      .eq('firebase_uid', data.profile_uid)
+      .single()
+    return { ...data, profiles: profile || null }
+  }
   return data
 }
 
@@ -185,7 +203,7 @@ export const clockOut = async (tenantId, uid) => {
 export const getAttendance = async (tenantId, filters = {}) => {
   let q = supabaseAdmin
     .from('attendance')
-    .select(`*, profiles(full_name)`)
+    .select('*')
     .eq('tenant_id', tenantId)
     .order('date', { ascending: false })
 
@@ -199,7 +217,16 @@ export const getAttendance = async (tenantId, filters = {}) => {
 
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  // fetch profiles separately
+  const uids = [...new Set((data || []).map(r => r.employee_uid).filter(Boolean))]
+  if (uids.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('firebase_uid, full_name').in('firebase_uid', uids)
+    const pm = Object.fromEntries((profiles || []).map(p => [p.firebase_uid, p]))
+    return (data || []).map(r => ({ ...r, profiles: pm[r.employee_uid] || null }))
+  }
+  return data || []
 }
 
 export const markAttendance = async (tenantId, payload) => {
@@ -234,7 +261,7 @@ export const createLeaveType = async (tenantId, payload) => {
 export const listLeaveRequests = async (tenantId, filters = {}) => {
   let q = supabaseAdmin
     .from('leave_requests')
-    .select(`*, profiles(full_name, email), leave_types(name, color)`)
+    .select(`*, leave_types(name, color)`)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
@@ -243,7 +270,16 @@ export const listLeaveRequests = async (tenantId, filters = {}) => {
 
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  // fetch profiles separately
+  const uids = [...new Set((data || []).map(r => r.employee_uid).filter(Boolean))]
+  if (uids.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('firebase_uid, full_name, email').in('firebase_uid', uids)
+    const pm = Object.fromEntries((profiles || []).map(p => [p.firebase_uid, p]))
+    return (data || []).map(r => ({ ...r, profiles: pm[r.employee_uid] || null }))
+  }
+  return data || []
 }
 
 export const applyLeave = async (tenantId, uid, payload) => {
@@ -306,7 +342,7 @@ export const cancelLeave = async (tenantId, id, uid) => {
 export const listPayroll = async (tenantId, filters = {}) => {
   let q = supabaseAdmin
     .from('payroll')
-    .select(`*, profiles(full_name, email), employees(designation, departments(name))`)
+    .select(`*, employees(designation, departments(name))`)
     .eq('tenant_id', tenantId)
     .order('year',  { ascending: false })
     .order('month', { ascending: false })
@@ -318,7 +354,16 @@ export const listPayroll = async (tenantId, filters = {}) => {
 
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  // fetch profiles separately
+  const uids = [...new Set((data || []).map(r => r.employee_uid).filter(Boolean))]
+  if (uids.length) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('firebase_uid, full_name, email').in('firebase_uid', uids)
+    const pm = Object.fromEntries((profiles || []).map(p => [p.firebase_uid, p]))
+    return (data || []).map(r => ({ ...r, profiles: pm[r.employee_uid] || null }))
+  }
+  return data || []
 }
 
 export const generatePayroll = async (tenantId, month, year) => {

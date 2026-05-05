@@ -14,6 +14,7 @@ const TITLES = {
   '/admin/files':     'Files',
   '/admin/reports':   'Reports',
   '/admin/settings':  'Settings',
+  '/admin/team':      'Team Management',
 }
 
 export default function AdminLayout() {
@@ -35,7 +36,7 @@ export default function AdminLayout() {
 
         {/* MAIN — only this area scrolls */}
         <main className="flex-1 overflow-y-auto bg-bg">
-          <div className="p-6 max-w-screen-2xl mx-auto">
+          <div className="p-6 pt-24 max-w-screen-2xl mx-auto">
             <Outlet />
           </div>
         </main>

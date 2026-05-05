@@ -15,22 +15,22 @@ export const getOverviewKPIs = async (tenantId, { from, to } = {}) => {
     clientRes,  employeeRes,
     invoiceRes,
   ] = await Promise.all([
-    // Total revenue (paid invoices)
+    // Total revenue (paid invoices) — column is `total` not `total_amount`
     (() => {
       let q = supabaseAdmin.from('invoices')
-        .select('total_amount')
+        .select('total')
         .eq('tenant_id', tenantId)
         .eq('status', 'paid')
       q = applyDateFilter(q, 'paid_at', from, to)
       return q
     })(),
-    // Total expenses (approved)
+    // Total expenses (approved) — column is `date` not `expense_date`
     (() => {
       let q = supabaseAdmin.from('expenses')
         .select('amount')
         .eq('tenant_id', tenantId)
         .eq('status', 'approved')
-      q = applyDateFilter(q, 'expense_date', from, to)
+      q = applyDateFilter(q, 'date', from, to)
       return q
     })(),
     // Projects
@@ -41,27 +41,29 @@ export const getOverviewKPIs = async (tenantId, { from, to } = {}) => {
     supabaseAdmin.from('tasks')
       .select('id, status')
       .eq('tenant_id', tenantId),
-    // Clients
-    supabaseAdmin.from('clients')
+    // Clients — no dedicated clients table; count profiles with role=client
+    supabaseAdmin.from('profiles')
       .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId),
+      .eq('tenant_id', tenantId)
+      .eq('role', 'client'),
     // Employees
     supabaseAdmin.from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('role', 'employee'),
     // Outstanding invoices
     supabaseAdmin.from('invoices')
-      .select('total_amount')
+      .select('total')
       .eq('tenant_id', tenantId)
       .in('status', ['sent','overdue']),
   ])
 
-  const revenue     = revenueRes.data?.reduce((s, r) => s + (r.total_amount || 0), 0) || 0
+  const revenue     = revenueRes.data?.reduce((s, r) => s + (r.total || 0), 0) || 0
   const expenses    = expenseRes.data?.reduce((s, r) => s + (r.amount || 0), 0) || 0
   const projects    = projectRes.data || []
   const tasks       = taskRes.data || []
-  const outstanding = invoiceRes.data?.reduce((s, r) => s + (r.total_amount || 0), 0) || 0
+  const outstanding = invoiceRes.data?.reduce((s, r) => s + (r.total || 0), 0) || 0
 
   return {
     revenue:            revenue,
@@ -85,7 +87,7 @@ export const getOverviewKPIs = async (tenantId, { from, to } = {}) => {
 export const getRevenueTrend = async (tenantId, { from, to, groupBy = 'month' } = {}) => {
   let q = supabaseAdmin
     .from('invoices')
-    .select('total_amount, paid_at, issue_date')
+    .select('total, paid_at')           // `total` not `total_amount`, no `issue_date`
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
     .order('paid_at')
@@ -94,14 +96,14 @@ export const getRevenueTrend = async (tenantId, { from, to, groupBy = 'month' } 
   const { data, error } = await q
   if (error) throw error
 
-  // Also get expenses for same period
+  // Also get expenses for same period — column is `date` not `expense_date`
   let eq = supabaseAdmin
     .from('expenses')
-    .select('amount, expense_date')
+    .select('amount, date')
     .eq('tenant_id', tenantId)
     .eq('status', 'approved')
-    .order('expense_date')
-  eq = applyDateFilter(eq, 'expense_date', from, to)
+    .order('date')
+  eq = applyDateFilter(eq, 'date', from, to)
   const { data: expData } = await eq
 
   // Group by month
@@ -116,12 +118,12 @@ export const getRevenueTrend = async (tenantId, { from, to, groupBy = 'month' } 
   const revenueMap = {}
   data?.forEach(inv => {
     const key = groupKey(inv.paid_at)
-    revenueMap[key] = (revenueMap[key] || 0) + (inv.total_amount || 0)
+    revenueMap[key] = (revenueMap[key] || 0) + (inv.total || 0)
   })
 
   const expenseMap = {}
   expData?.forEach(exp => {
-    const key = groupKey(exp.expense_date)
+    const key = groupKey(exp.date)
     expenseMap[key] = (expenseMap[key] || 0) + (exp.amount || 0)
   })
 
@@ -242,30 +244,31 @@ export const getEmployeePerformance = async (tenantId, { from, to } = {}) => {
 
 // ─── CLIENT REVENUE ───────────────────────────────────────────────────────────
 export const getClientRevenue = async (tenantId, { from, to } = {}) => {
+  // `client_uid` not `client_id`; `total` not `total_amount`
   let q = supabaseAdmin
     .from('invoices')
-    .select('client_id, total_amount, status')
+    .select('client_uid, total, status')
     .eq('tenant_id', tenantId)
     .eq('status', 'paid')
   q = applyDateFilter(q, 'paid_at', from, to)
   const { data: invoices } = await q
 
-  const { data: clients } = await supabaseAdmin
-    .from('clients')
-    .select('id, company_name, contact_name')
-    .eq('tenant_id', tenantId)
-
-  const clientMap = Object.fromEntries((clients||[]).map(c => [c.id, c]))
+  // No `clients` table — client profiles are in `profiles` with role=client
+  const clientUids = [...new Set((invoices||[]).map(i => i.client_uid).filter(Boolean))]
+  const { data: clientProfiles } = clientUids.length
+    ? await supabaseAdmin.from('profiles').select('firebase_uid, full_name').in('firebase_uid', clientUids)
+    : { data: [] }
+  const clientMap = Object.fromEntries((clientProfiles||[]).map(p => [p.firebase_uid, p]))
 
   const revenueMap = {}
   invoices?.forEach(inv => {
-    revenueMap[inv.client_id] = (revenueMap[inv.client_id] || 0) + (inv.total_amount || 0)
+    revenueMap[inv.client_uid] = (revenueMap[inv.client_uid] || 0) + (inv.total || 0)
   })
 
   return Object.entries(revenueMap)
-    .map(([id, revenue]) => ({
-      client_id: id,
-      name:      clientMap[id]?.company_name || clientMap[id]?.contact_name || id,
+    .map(([uid, revenue]) => ({
+      client_id: uid,
+      name:      clientMap[uid]?.full_name || uid,
       revenue,
     }))
     .sort((a, b) => b.revenue - a.revenue)
@@ -274,17 +277,19 @@ export const getClientRevenue = async (tenantId, { from, to } = {}) => {
 
 // ─── EXPENSE BREAKDOWN ────────────────────────────────────────────────────────
 export const getExpenseBreakdown = async (tenantId, { from, to } = {}) => {
+  // column is `date` not `expense_date`; join expense_categories for name
   let q = supabaseAdmin
     .from('expenses')
-    .select('amount, category, expense_date, status')
+    .select('amount, date, status, expense_categories(name)')
     .eq('tenant_id', tenantId)
     .eq('status', 'approved')
-  q = applyDateFilter(q, 'expense_date', from, to)
+  q = applyDateFilter(q, 'date', from, to)
   const { data, error } = await q
   if (error) throw error
 
   const byCategory = (data||[]).reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + (e.amount || 0); return acc }, {})
+    const cat = e.expense_categories?.name || 'Uncategorized'
+    acc[cat] = (acc[cat] || 0) + (e.amount || 0); return acc }, {})
 
   return Object.entries(byCategory)
     .map(([category, amount]) => ({ category, amount }))
@@ -293,12 +298,13 @@ export const getExpenseBreakdown = async (tenantId, { from, to } = {}) => {
 
 // ─── INVOICE SUMMARY ──────────────────────────────────────────────────────────
 export const getInvoiceSummary = async (tenantId, { from, to } = {}) => {
+  // `total` not `total_amount`; `created_at` not `issue_date`
   let q = supabaseAdmin
     .from('invoices')
-    .select('id, total_amount, status, issue_date, due_date, paid_at')
+    .select('id, total, status, created_at, due_date, paid_at')
     .eq('tenant_id', tenantId)
-    .order('issue_date', { ascending: false })
-  q = applyDateFilter(q, 'issue_date', from, to)
+    .order('created_at', { ascending: false })
+  q = applyDateFilter(q, 'created_at', from, to)
   const { data, error } = await q
   if (error) throw error
 
@@ -306,14 +312,14 @@ export const getInvoiceSummary = async (tenantId, { from, to } = {}) => {
   const byStatus = invoices.reduce((acc, inv) => {
     if (!acc[inv.status]) acc[inv.status] = { count: 0, amount: 0 }
     acc[inv.status].count++
-    acc[inv.status].amount += inv.total_amount || 0
+    acc[inv.status].amount += inv.total || 0
     return acc
   }, {})
 
   return {
-    total:     invoices.length,
-    by_status: byStatus,
-    total_amount: invoices.reduce((s, i) => s + (i.total_amount || 0), 0),
+    total:        invoices.length,
+    by_status:    byStatus,
+    total_amount: invoices.reduce((s, i) => s + (i.total || 0), 0),
   }
 }
 
@@ -324,7 +330,7 @@ export const listSavedReports = async (tenantId) => {
     .select('*')
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) return []   // table may not exist yet
   return data || []
 }
 

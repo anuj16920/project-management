@@ -109,4 +109,4 @@ export default function EmployeeCard({ employee: e, index=0, onRefresh }) {
       </div>
     </motion.div>
   )
-}EmployeeTable.jsx
+}

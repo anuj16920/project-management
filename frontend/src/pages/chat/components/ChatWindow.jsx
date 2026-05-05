@@ -371,4 +371,4 @@ export default function ChatWindow({ room, currentUid, currentProfile }) {
       </div>
     </div>
   )
-}NewChatModal.jsx
+}

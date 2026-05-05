@@ -6,6 +6,7 @@ import {
   BarChart3, ChevronLeft, ChevronRight,
   Briefcase, DollarSign, MessageSquare,
   FolderOpen, FileBarChart, Settings,
+  CreditCard, Zap,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -31,6 +32,7 @@ const EMPLOYEE_NAV = [
   { label: 'My HR',     to: '/employee/hr',        icon: Briefcase       },
   { label: 'Chat',      to: '/employee/chat',      icon: MessageSquare   },
   { label: 'Files',     to: '/employee/files',     icon: FolderOpen      },
+  { label: 'Settings', to: '/employee/settings',  icon: Settings        },
 ]
 
 const CLIENT_NAV = [
@@ -39,14 +41,18 @@ const CLIENT_NAV = [
   { label: 'Tasks',     to: '/client/tasks',     icon: CheckSquare     },
   { label: 'Invoices',  to: '/client/invoices',  icon: DollarSign      },
   { label: 'Files',     to: '/client/files',     icon: FolderOpen      },
+  { label: 'Chat',      to: '/client/chat',      icon: MessageSquare   },
+  { label: 'Reports',   to: '/client/reports',   icon: FileBarChart    },
   { label: 'Account',   to: '/client/account',   icon: UserCircle      },
 ]
 
 const SUPERADMIN_NAV = [
-  { label: 'Dashboard', to: '/superadmin/dashboard', icon: LayoutDashboard },
-  { label: 'Tenants',   to: '/superadmin/tenants',   icon: Users           },
-  { label: 'Analytics', to: '/superadmin/analytics', icon: BarChart3       },
-  { label: 'Settings',  to: '/superadmin/settings',  icon: Settings        },
+  { label: 'Dashboard',    to: '/superadmin/dashboard',     icon: LayoutDashboard },
+  { label: 'Tenants',      to: '/superadmin/tenants',       icon: Users           },
+  { label: 'Analytics',    to: '/superadmin/analytics',     icon: BarChart3       },
+  { label: 'Subscriptions',to: '/superadmin/subscriptions', icon: CreditCard      },
+  { label: 'Feature Flags',to: '/superadmin/features',      icon: Zap             },
+  { label: 'Settings',     to: '/superadmin/settings',      icon: Settings        },
 ]
 
 const NAV_BY_ROLE = {

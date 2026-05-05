@@ -56,6 +56,13 @@ const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage'))
 const EmployeesList  = lazy(() => import('@/pages/hr/EmployeesList'))
 const EmployeeDetail = lazy(() => import('@/pages/hr/EmployeeDetail'))
 const EmployeeHRPage = lazy(() => import('@/pages/hr/EmployeeHRPage'))
+const AdminSettings      = lazy(() => import('@/pages/settings/AdminSettings'))
+const EmployeeSettings   = lazy(() => import('@/pages/settings/EmployeeSettings'))
+const ClientReports      = lazy(() => import('@/pages/client/reports/ClientReports'))
+const AnalyticsPage      = lazy(() => import('@/pages/superadmin/analytics/AnalyticsPage'))
+const SuperAdminSettings = lazy(() => import('@/pages/superadmin/settings/SuperAdminSettings'))
+const SubscriptionManager = lazy(() => import('@/pages/superadmin/SubscriptionManager'))
+const FeatureToggles     = lazy(() => import('@/pages/superadmin/FeatureToggles'))
 
 
 
@@ -91,6 +98,7 @@ export default function AppRoutes() {
           <Route path="/admin/finance/invoices/:id"  element={<InvoiceDetail />} />
           <Route path="/admin/hr"                    element={<EmployeesList />} />
           <Route path="/admin/hr/:id"                element={<EmployeeDetail />} />
+          <Route path="/admin/settings"              element={<AdminSettings />} />
         </Route>
       </Route>
 
@@ -104,6 +112,7 @@ export default function AppRoutes() {
           <Route path="/employee/files"        element={<FilesPage />} />
           <Route path="/employee/chat"         element={<ChatPage />} />
           <Route path="/employee/hr"            element={<EmployeeHRPage />} />
+          <Route path="/employee/settings"     element={<EmployeeSettings />} />
         </Route>
       </Route>
 
@@ -117,14 +126,19 @@ export default function AppRoutes() {
           <Route path="/client/invoices"    element={<ClientInvoices />} />
           <Route path="/client/files"       element={<FilesPage />} />
           <Route path="/client/chat"        element={<ChatPage />} />
+          <Route path="/client/reports"     element={<ClientReports />} />
         </Route>
       </Route>
 
       {/* Super Admin */}
       <Route element={<ProtectedRoutes allowedRoles={[ROLES.SUPER_ADMIN]} />}>
         <Route element={<SuperAdminLayout />}>
-          <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
-          <Route path="/superadmin/tenants"   element={<TenantsPage />} />
+          <Route path="/superadmin/dashboard"     element={<SuperAdminDashboard />} />
+          <Route path="/superadmin/tenants"       element={<TenantsPage />} />
+          <Route path="/superadmin/analytics"     element={<AnalyticsPage />} />
+          <Route path="/superadmin/settings"      element={<SuperAdminSettings />} />
+          <Route path="/superadmin/subscriptions" element={<SubscriptionManager />} />
+          <Route path="/superadmin/features"      element={<FeatureToggles />} />
         </Route>
       </Route>
 

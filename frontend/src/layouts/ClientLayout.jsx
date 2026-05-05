@@ -26,7 +26,7 @@ export default function ClientLayout() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto bg-bg">
-          <div className="p-6 max-w-screen-2xl mx-auto">
+          <div className="p-6 pt-24 max-w-screen-2xl mx-auto">
             <Outlet />
           </div>
         </main>

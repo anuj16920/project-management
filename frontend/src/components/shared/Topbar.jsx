@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Search, Bell, ChevronDown, Settings } from 'lucide-react'
+import { Search, ChevronDown, Settings } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '@/components/ui/Avatar'
@@ -28,13 +28,18 @@ export default function Topbar({ title = '', sidebarCollapsed = false }) {
         </div>
 
         {/* Notifications */}
-        <button className="relative w-9 h-9 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-text-m hover:text-text-p hover:border-white/20 transition-all">
-          <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
-        </button>
+        <NotificationBell />
 
         {/* Settings */}
-        <button onClick={() => navigate(`/${profile?.role?.replace('_','')+'/settings'}`)}
+        <button onClick={() => {
+          const settingsPath = {
+            admin:       '/admin/settings',
+            employee:    '/employee/settings',
+            client:      '/client/account',
+            super_admin: '/superadmin/settings',
+          }[profile?.role] || '/admin/settings'
+          navigate(settingsPath)
+        }}
           className="w-9 h-9 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-text-m hover:text-text-p hover:border-white/20 transition-all">
           <Settings size={16} />
         </button>
