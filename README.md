@@ -1,4 +1,4 @@
-# 🚀 NexaWork — Multi-Tenant Business Management Platform
+# 🚀 NexaWork — Multi-Tenant Business Management Platform.
 
 ![NexaWork Cover](https://via.placeholder.com/1200x400/0F111A/6366F1?text=NexaWork+-+Everything+in+one+place)
 
