@@ -342,7 +342,7 @@ export const cancelLeave = async (tenantId, id, uid) => {
 export const listPayroll = async (tenantId, filters = {}) => {
   let q = supabaseAdmin
     .from('payroll')
-    .select(`*, employees(designation, departments(name))`)
+    .select('*')
     .eq('tenant_id', tenantId)
     .order('year',  { ascending: false })
     .order('month', { ascending: false })
@@ -355,15 +355,25 @@ export const listPayroll = async (tenantId, filters = {}) => {
   const { data, error } = await q
   if (error) throw error
 
-  // fetch profiles separately
-  const uids = [...new Set((data || []).map(r => r.employee_uid).filter(Boolean))]
-  if (uids.length) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles').select('firebase_uid, full_name, email').in('firebase_uid', uids)
-    const pm = Object.fromEntries((profiles || []).map(p => [p.firebase_uid, p]))
-    return (data || []).map(r => ({ ...r, profiles: pm[r.employee_uid] || null }))
-  }
-  return data || []
+  const rows = data || []
+  if (!rows.length) return rows
+
+  const uids = [...new Set(rows.map(r => r.employee_uid).filter(Boolean))]
+
+  // fetch profiles and employees separately — employee_uid is a TEXT firebase uid, no FK
+  const [profilesRes, employeesRes] = await Promise.all([
+    supabaseAdmin.from('profiles').select('firebase_uid, full_name, email').in('firebase_uid', uids),
+    supabaseAdmin.from('employees').select('profile_uid, designation, department_id, departments(name)').in('profile_uid', uids),
+  ])
+
+  const pm = Object.fromEntries((profilesRes.data || []).map(p => [p.firebase_uid, p]))
+  const em = Object.fromEntries((employeesRes.data || []).map(e => [e.profile_uid, e]))
+
+  return rows.map(r => ({
+    ...r,
+    profiles:  pm[r.employee_uid] || null,
+    employees: em[r.employee_uid] || null,
+  }))
 }
 
 export const generatePayroll = async (tenantId, month, year) => {

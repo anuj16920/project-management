@@ -55,11 +55,19 @@ const SUPERADMIN_NAV = [
   { label: 'Settings',     to: '/superadmin/settings',      icon: Settings        },
 ]
 
+const HR_NAV = [
+  { label: 'Employees', to: '/hr/dashboard',  icon: Briefcase       },
+  { label: 'Chat',      to: '/hr/chat',        icon: MessageSquare   },
+  { label: 'Files',     to: '/hr/files',       icon: FolderOpen      },
+  { label: 'Settings',  to: '/hr/settings',    icon: Settings        },
+]
+
 const NAV_BY_ROLE = {
   admin:       ADMIN_NAV,
   manager:     ADMIN_NAV,
   employee:    EMPLOYEE_NAV,
   client:      CLIENT_NAV,
+  hr:          HR_NAV,
   super_admin: SUPERADMIN_NAV,
 }
 

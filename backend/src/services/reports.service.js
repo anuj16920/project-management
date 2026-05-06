@@ -141,7 +141,7 @@ export const getProjectStats = async (tenantId, { from, to } = {}) => {
   let q = supabaseAdmin
     .from('projects')
     .select(`
-      id, name, status, budget, start_date, end_date,
+      id, name, status, budget, start_date, due_date,
       tasks(id, status)
     `)
     .eq('tenant_id', tenantId)
@@ -173,7 +173,7 @@ export const getProjectStats = async (tenantId, { from, to } = {}) => {
 export const getTaskAnalytics = async (tenantId, { from, to } = {}) => {
   let q = supabaseAdmin
     .from('tasks')
-    .select('id, status, priority, assigned_to, due_date, created_at')
+    .select('id, status, priority, assignee_uid, due_date, created_at')
     .eq('tenant_id', tenantId)
   q = applyDateFilter(q, 'created_at', from, to)
   const { data, error } = await q
@@ -205,9 +205,9 @@ export const getEmployeePerformance = async (tenantId, { from, to } = {}) => {
   // Tasks per employee
   let q = supabaseAdmin
     .from('tasks')
-    .select('assigned_to, status')
+    .select('assignee_uid, status')
     .eq('tenant_id', tenantId)
-    .not('assigned_to', 'is', null)
+    .not('assignee_uid', 'is', null)
   q = applyDateFilter(q, 'created_at', from, to)
   const { data: tasks } = await q
 
@@ -222,12 +222,13 @@ export const getEmployeePerformance = async (tenantId, { from, to } = {}) => {
 
   const empMap = {}
   tasks?.forEach(t => {
-    if (!empMap[t.assigned_to]) {
-      empMap[t.assigned_to] = { total: 0, completed: 0, in_progress: 0, overdue: 0 }
+    const uid = t.assignee_uid
+    if (!empMap[uid]) {
+      empMap[uid] = { total: 0, completed: 0, in_progress: 0, overdue: 0 }
     }
-    empMap[t.assigned_to].total++
-    if (t.status === 'done')        empMap[t.assigned_to].completed++
-    if (t.status === 'in_progress') empMap[t.assigned_to].in_progress++
+    empMap[uid].total++
+    if (t.status === 'done')        empMap[uid].completed++
+    if (t.status === 'in_progress') empMap[uid].in_progress++
   })
 
   return Object.entries(empMap)

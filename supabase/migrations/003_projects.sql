@@ -35,17 +35,4 @@ CREATE TRIGGER tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNC
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "tasks_tenant" ON tasks FOR ALL USING (tenant_id = get_my_tenant_id());
 
-CREATE TABLE invoices (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  client_uid   TEXT NOT NULL,
-  amount       NUMERIC(12,2) NOT NULL,
-  status       TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','pending','paid','overdue','cancelled')),
-  due_date     DATE,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_invoices_tenant ON invoices(tenant_id);
-CREATE TRIGGER invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "invoices_tenant" ON invoices FOR ALL USING (tenant_id = get_my_tenant_id());
+-- invoices table is defined in 007_finance.sql with the full schema

@@ -83,6 +83,35 @@ export const createClient = async (tenantId, { email, fullName, password, phone,
   return data
 }
 
+// Create HR staff account
+export const createHR = async (tenantId, { email, fullName, password, phone }) => {
+  const firebaseUser = await admin.auth().createUser({
+    email,
+    password,
+    displayName: fullName,
+  })
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .insert({
+      firebase_uid: firebaseUser.uid,
+      tenant_id: tenantId,
+      email,
+      full_name: fullName,
+      phone,
+      role: 'hr',
+    })
+    .select()
+    .single()
+
+  if (error) {
+    await admin.auth().deleteUser(firebaseUser.uid)
+    throw error
+  }
+
+  return data
+}
+
 // Delete user
 export const deleteUser = async (userId) => {
   // Get user to find Firebase UID

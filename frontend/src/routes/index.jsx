@@ -130,6 +130,16 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
+      {/* HR Staff */}
+      <Route element={<ProtectedRoutes allowedRoles={[ROLES.HR]} />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/hr/dashboard" element={<EmployeesList />} />
+          <Route path="/hr/chat"      element={<ChatPage />} />
+          <Route path="/hr/files"     element={<FilesPage />} />
+          <Route path="/hr/settings"  element={<AdminSettings />} />
+        </Route>
+      </Route>
+
       {/* Super Admin */}
       <Route element={<ProtectedRoutes allowedRoles={[ROLES.SUPER_ADMIN]} />}>
         <Route element={<SuperAdminLayout />}>

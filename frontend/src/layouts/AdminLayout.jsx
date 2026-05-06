@@ -15,6 +15,10 @@ const TITLES = {
   '/admin/reports':   'Reports',
   '/admin/settings':  'Settings',
   '/admin/team':      'Team Management',
+  '/hr/dashboard':    'HR Management',
+  '/hr/chat':         'Chat',
+  '/hr/files':        'Files',
+  '/hr/settings':     'Settings',
 }
 
 export default function AdminLayout() {

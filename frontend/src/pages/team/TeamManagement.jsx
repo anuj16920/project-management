@@ -25,6 +25,7 @@ const ROLE_COLORS = {
 const TABS = [
   { id: 'employee', label: 'Employees',  icon: Briefcase,  role: 'employee' },
   { id: 'client',   label: 'Clients',    icon: Building2,  role: 'client'   },
+  { id: 'hr',       label: 'HR Staff',   icon: Shield,     role: 'hr'       },
 ]
 
 function CopyBtn({ text }) {
@@ -155,6 +156,7 @@ function CreateModal({ type, onClose, onSuccess }) {
       let res
       if (type === 'employee') res = await usersAPI.createEmployee({ ...form, password: form.tempPassword })
       if (type === 'client')   res = await usersAPI.createClient({ ...form, password: form.tempPassword })
+      if (type === 'hr')       res = await usersAPI.createHR({ ...form, password: form.tempPassword })
       onSuccess?.({ user: res.data.data, password: form.tempPassword })
     } catch (err) {
       toast.error(err?.response?.data?.message || `Failed to create ${type} account`)
@@ -164,8 +166,9 @@ function CreateModal({ type, onClose, onSuccess }) {
   }
 
   const LABELS = {
-    employee: { title: 'Create Employee Account', color: 'text-accent', accent: 'border-accent/30 bg-accent/5' },
-    client:   { title: 'Create Client Account',   color: 'text-emerald-400', accent: 'border-emerald-500/30 bg-emerald-500/5' },
+    employee: { title: 'Create Employee Account', color: 'text-accent',       accent: 'border-accent/30 bg-accent/5' },
+    client:   { title: 'Create Client Account',   color: 'text-emerald-400',  accent: 'border-emerald-500/30 bg-emerald-500/5' },
+    hr:       { title: 'Create HR Account',        color: 'text-amber-400',   accent: 'border-amber-500/30 bg-amber-500/5' },
   }
   const cfg = LABELS[type]
 
@@ -268,7 +271,7 @@ function CreateModal({ type, onClose, onSuccess }) {
               className="flex-1 bg-accent hover:bg-accent-h text-white text-sm font-semibold py-2.5 rounded-xl transition-all glow-accent disabled:opacity-60 disabled:cursor-not-allowed">
               {loading
                 ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</span>
-                : `Create ${type === 'employee' ? 'Employee' : 'Client'}`}
+                : `Create ${{ employee: 'Employee', client: 'Client', hr: 'HR Staff' }[type]}`}
             </button>
           </div>
         </form>
@@ -325,8 +328,9 @@ function UserRow({ user, onDelete }) {
 // ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyTab({ type, onAdd }) {
   const cfg = {
-    employee: { icon: Briefcase, title: 'No employees yet', desc: 'Add your first team member to get started.', color: 'text-accent', btn: 'Add Employee' },
-    client:   { icon: Building2, title: 'No clients yet',   desc: 'Add your first client to manage their projects.', color: 'text-emerald-400', btn: 'Add Client' },
+    employee: { icon: Briefcase, title: 'No employees yet',  desc: 'Add your first team member to get started.',          color: 'text-accent',      btn: 'Add Employee' },
+    client:   { icon: Building2, title: 'No clients yet',    desc: 'Add your first client to manage their projects.',      color: 'text-emerald-400', btn: 'Add Client' },
+    hr:       { icon: Shield,    title: 'No HR staff yet',   desc: 'Add HR members to manage payroll and attendance.',     color: 'text-amber-400',   btn: 'Add HR Staff' },
   }[type]
 
   return (
@@ -412,7 +416,7 @@ export default function TeamManagement() {
           className="flex items-center gap-2 bg-accent hover:bg-accent-h text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all glow-accent"
         >
           <UserPlus size={16} />
-          Add {activeTab === 'employee' ? 'Employee' : 'Client'}
+          Add {{ employee: 'Employee', client: 'Client', hr: 'HR Staff' }[activeTab]}
         </button>
       </div>
 

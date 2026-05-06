@@ -5,6 +5,7 @@ export const ROLES = {
   ADMIN:       'admin',
   EMPLOYEE:    'employee',
   CLIENT:      'client',
+  HR:          'hr',
 }
 
 export const ROUTES = {
@@ -17,6 +18,7 @@ export const ROUTES = {
   EMPLOYEE_DASH: '/employee/dashboard',
   CLIENT_DASH:   '/client/dashboard',
   SUPER_DASH:    '/superadmin/dashboard',
+  HR_DASH:       '/hr/dashboard',
 }
 
 export const NAV_LINKS = [

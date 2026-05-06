@@ -18,6 +18,7 @@ export default function PublicRoutes() {
       [ROLES.ADMIN]:       ROUTES.ADMIN_DASH,
       [ROLES.EMPLOYEE]:    ROUTES.EMPLOYEE_DASH,
       [ROLES.CLIENT]:      ROUTES.CLIENT_DASH,
+      [ROLES.HR]:          ROUTES.HR_DASH,
     }
     return <Navigate to={redirect[profile.role] || ROUTES.ADMIN_DASH} replace />
   }

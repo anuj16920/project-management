@@ -9,22 +9,20 @@ export const listClients = async (tenantId, filters = {}) => {
     .select(`
       *,
       contacts(id, full_name, email, is_primary),
-      deals(id, value, stage),
-      projects(id, name, status)
+      deals(id, value, stage)
     `)
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
 
-  if (filters.status) q = q.eq('status', filters.status)
-  if (filters.search) q = q.ilike('company_name', `%${filters.search}%`)
+  if (filters.status)      q = q.eq('status',      filters.status)
+  if (filters.search)      q = q.ilike('company_name', `%${filters.search}%`)
   if (filters.profile_uid) q = q.eq('profile_uid', filters.profile_uid)
 
   const { data, error } = await q
   if (error) throw error
 
-  return data.map(c => ({
+  return (data || []).map(c => ({
     ...c,
-    activeProjects: c.projects?.filter(p => p.status === 'active').length || 0,
     totalDeals:     c.deals?.length || 0,
     openDeals:      c.deals?.filter(d => !['won','lost'].includes(d.stage)).length || 0,
     dealValue:      c.deals?.reduce((s, d) => s + (d.value || 0), 0) || 0,
@@ -39,14 +37,25 @@ export const getClient = async (tenantId, clientId) => {
       *,
       contacts(*),
       deals(*),
-      projects(id, name, status, progress, due_date),
       crm_activities(*)
     `)
     .eq('tenant_id', tenantId)
     .eq('id', clientId)
     .single()
   if (error) throw error
-  return data
+
+  // Fetch related projects via client_uid (no FK to clients.id exists)
+  let projects = []
+  if (data?.profile_uid) {
+    const { data: proj } = await supabaseAdmin
+      .from('projects')
+      .select('id, name, status, progress, due_date')
+      .eq('tenant_id', tenantId)
+      .eq('client_uid', data.profile_uid)
+    projects = proj || []
+  }
+
+  return { ...data, projects }
 }
 
 export const createClient = async (tenantId, creatorRole, payload) => {
@@ -234,23 +243,27 @@ export const toggleActivity = async (tenantId, activityId) => {
 // ─── CRM Stats ────────────────────────────────────────────────────────────────
 
 export const getCRMStats = async (tenantId) => {
-  const [clients, deals, activities] = await Promise.all([
+  const [clientsRes, dealsRes, activitiesRes] = await Promise.all([
     supabaseAdmin.from('clients').select('id, status, total_value').eq('tenant_id', tenantId),
     supabaseAdmin.from('deals').select('id, stage, value').eq('tenant_id', tenantId),
     supabaseAdmin.from('crm_activities').select('id, is_done').eq('tenant_id', tenantId),
   ])
 
-  const wonDeals  = deals.data?.filter(d => d.stage === 'won')  || []
-  const openDeals = deals.data?.filter(d => !['won','lost'].includes(d.stage)) || []
+  const clients    = clientsRes.data    || []
+  const deals      = dealsRes.data      || []
+  const activities = activitiesRes.data || []
+
+  const wonDeals  = deals.filter(d => d.stage === 'won')
+  const openDeals = deals.filter(d => !['won','lost'].includes(d.stage))
 
   return {
-    totalClients:  clients.data?.length || 0,
-    activeClients: clients.data?.filter(c => c.status === 'active').length || 0,
-    totalDeals:    deals.data?.length   || 0,
+    totalClients:  clients.length,
+    activeClients: clients.filter(c => c.status === 'active').length,
+    totalDeals:    deals.length,
     openDeals:     openDeals.length,
     wonDeals:      wonDeals.length,
     pipeline:      openDeals.reduce((s, d) => s + (d.value || 0), 0),
     revenue:       wonDeals.reduce((s, d) => s + (d.value || 0), 0),
-    pendingTasks:  activities.data?.filter(a => !a.is_done).length || 0,
+    pendingTasks:  activities.filter(a => !a.is_done).length,
   }
 }

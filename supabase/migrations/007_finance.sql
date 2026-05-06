@@ -35,6 +35,21 @@ CREATE POLICY "exp_tenant" ON expenses FOR ALL
   USING (tenant_id = get_my_tenant_id());
 
 -- ─── INVOICES ─────────────────────────────────────────────────────────────────
+-- Add missing columns in case the stub table from 003_projects.sql was already applied
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'INR';
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS subtotal NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS tax_percent NUMERIC(5,2) DEFAULT 18;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS discount NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS total NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS invoices (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id      UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,

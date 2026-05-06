@@ -9,6 +9,9 @@ export const usersAPI = {
   
   // Create client
   createClient: (data) => api.post('/users/client', data),
+
+  // Create HR staff
+  createHR: (data) => api.post('/users/hr', data),
   
   // Delete user
   delete: (id) => api.delete(`/users/${id}`),

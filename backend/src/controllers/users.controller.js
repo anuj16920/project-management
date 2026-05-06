@@ -46,6 +46,21 @@ export const createClient = async (req, res) => {
   }
 }
 
+export const createHR = async (req, res) => {
+  try {
+    const { email, fullName, password, phone } = req.body
+
+    if (!email || !fullName || !password) {
+      return error(res, 'Email, full name, and password are required', 400)
+    }
+
+    const user = await UserService.createHR(req.tenantId, { email, fullName, password, phone })
+    return success(res, user, 'HR staff created successfully', 201)
+  } catch (err) {
+    return error(res, err.message, 500)
+  }
+}
+
 export const deleteUser = async (req, res) => {
   try {
     await UserService.deleteUser(req.params.id)

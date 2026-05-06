@@ -25,9 +25,8 @@ export const getTask = async (tenantId, taskId) => {
     .from('tasks')
     .select(`
       *,
-      profiles!tasks_assignee_uid_fkey(full_name, email),
       projects(name, cover_color),
-      task_comments(*, profiles!task_comments_author_uid_fkey(full_name)),
+      task_comments(*),
       task_attachments(*),
       task_time_logs(*),
       subtasks:tasks!parent_id(*)
@@ -36,7 +35,29 @@ export const getTask = async (tenantId, taskId) => {
     .eq('id', taskId)
     .single()
   if (error) throw error
-  return data
+
+  // Fetch assignee profile separately (TEXT uid, no FK)
+  let assigneeProfile = null
+  if (data?.assignee_uid) {
+    const { data: p } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email, avatar_url')
+      .eq('firebase_uid', data.assignee_uid)
+      .single()
+    assigneeProfile = p
+  }
+
+  // Fetch comment author profiles
+  const comments = data?.task_comments || []
+  if (comments.length > 0) {
+    const authorUids = [...new Set(comments.map(c => c.author_uid).filter(Boolean))]
+    const { data: authorProfiles } = await supabaseAdmin
+      .from('profiles').select('firebase_uid, full_name, avatar_url').in('firebase_uid', authorUids)
+    const profileMap = Object.fromEntries((authorProfiles || []).map(p => [p.firebase_uid, p]))
+    data.task_comments = comments.map(c => ({ ...c, profile: profileMap[c.author_uid] || null }))
+  }
+
+  return { ...data, assigneeProfile }
 }
 
 // ─── Create task ──────────────────────────────────────────────────────────────
